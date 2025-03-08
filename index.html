@@ -122,7 +122,7 @@
                     view.setZoom(18);
                 }, error => {
                     console.error('Error getting current location:', error);
-                    alert('Error getting current location');
+                    alert('Error getting current location' + error);
                 });
             } else {
                 alert('Geolocation is not supported by this browser.');
