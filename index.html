@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Test</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol/ol.css">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        #info {
+            display: none;
+            position: fixed; /* Changed from absolute to fixed */
+            bottom: 10px; /* Position at the bottom */
+            left: 50%; /* Center horizontally */
+            transform: translateX(-50%); /* Center horizontally */
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1001;
+        }
+        #info button {
+            display: block;
+            margin-top: 10px;
+        }
+        #info img {
+            float: left;
+            margin-right: 10px;
+            max-width: 100px;
+            max-height: 100px;
+        }
+        #info .audio-icon {
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #info .progress-container {
+            width: 100%;
+            background: #ddd;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #info .progress-bar {
+            width: 0;
+            height: 10px;
+            background: #4caf50;
+        }
+        #results {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 5px;
+            z-index: 1001;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 300px;
+        }
+        #results ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #results li {
+            padding: 10px;
+            cursor: pointer;
+        }
+        #results li:hover {
+            background: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input type="text" id="address" placeholder="Enter address or lat,lng">
+        <button onclick="goToLocation()">Go</button>
+        <button onclick="showCurrentLocation()">Current Location</button>
+    </div>
+    <div id="results"></div>
+    <div id="info"></div>
+    <div id="map"></div>
+    <script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+    <script>
+        const map = new ol.Map({
+            target: 'map',
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.OSM()
+                })
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([0, 0]),
+                zoom: 2
+            })
+        });
+
+        function showCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+                    const view = map.getView();
+                    view.setCenter(ol.proj.fromLonLat([longitude, latitude]));
+                    view.setZoom(18);
+                }, error => {
+                    console.error('Error getting current location:', error);
+                    alert('Error getting current location');
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+
+        function goToLocation() {
+            const input = document.getElementById('address').value;
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = ''; // Clear previous results
+            if (input.includes(',')) {
+                const [lat, lon] = input.split(',').map(Number);
+                const view = map.getView();
+                view.setCenter(ol.proj.fromLonLat([lon, lat]));
+                view.setZoom(10);
+            } else {
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${input}&limit=10`, {
+                    headers: {
+                        'User-Agent': 'MapsPro5000/1.0 (company@gmail.com)'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length === 1) {
+                            const { lat, lon } = data[0];
+                            const view = map.getView();
+                            view.setCenter(ol.proj.fromLonLat([parseFloat(lon), parseFloat(lat)]));
+                            view.setZoom(16);
+                        } else if (data.length > 1) {
+                            const ul = document.createElement('ul');
+                            data.slice(0, 10).forEach(location => {
+                                const li = document.createElement('li');
+                                li.textContent = location.display_name;
+                                li.onclick = () => {
+                                    const view = map.getView();
+                                    view.setCenter(ol.proj.fromLonLat([parseFloat(location.lon), parseFloat(location.lat)]));
+                                    view.setZoom(16);
+                                    resultsDiv.innerHTML = ''; // Clear results after selection
+                                };
+                                ul.appendChild(li);
+                            });
+                            resultsDiv.appendChild(ul);
+                        } else {
+                            alert('Location not found');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching location:', error);
+                        alert('Error fetching location');
+                    });
+            }
+        }
+
+        const locations = [
+            {
+                name: 'Colosseum',
+                coords: [12.4924, 41.8902],
+                info: 'This is the Colosseum',
+                image: 'content/Colosseum.jpg',
+                audio: 'content/Colosseum.m4a'
+            },
+            {
+                name: 'Arch of Constantine',
+                coords: [12.4906, 41.8897],
+                info: 'This is the Arch of Constantine',
+                image: null,
+                audio: null
+            },
+            {
+                name: 'Rua Padre manuel guimarães',
+                coords: [-8.438892301042538, 41.55693808034299],
+                info: 'This is a test',
+                image: 'content/Colosseum.jpg',
+                audio: 'content/Colosseum.m4a'
+            },
+        ];
+
+        const iconStyle = new ol.style.Style({
+            image: new ol.style.Icon({
+                    color: [255, 77, 77],
+                    fill: new ol.style.Fill({
+                        color: [255, 77, 77]
+                    }),
+                    scale: 0.2,
+                    src: 'https://www.svgrepo.com/show/505281/audio.svg'
+                })
+        });
+
+        const features = locations.map(location => {
+            const feature = new ol.Feature({
+                geometry: new ol.geom.Point(ol.proj.fromLonLat(location.coords)),
+                name: location.name,
+                info: location.info,
+                image: location.image,
+                audio: location.audio
+            });
+            feature.setStyle(iconStyle);
+            return feature;
+        });
+
+        const vectorSource = new ol.source.Vector({
+            features: features
+        });
+
+        const vectorLayer = new ol.layer.Vector({
+            source: vectorSource
+        });
+
+        map.addLayer(vectorLayer);
+
+        const infoDiv = document.getElementById('info');
+        let currentAudio = null;
+
+        map.on('pointermove', function(evt) {
+            const feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+                return feature;
+            });
+            if (feature) {
+                let content = '';
+                if (feature.get('image')) {
+                    content += `<img src="${feature.get('image')}" alt="${feature.get('name')}">`;
+                }
+                content += `<p>${feature.get('info')}</p>`;
+                if (feature.get('audio')) {
+                    content += `<div class="audio-icon" onclick="playAudio('${feature.get('audio')}')">🔊</div>`;
+                    content += `<div class="progress-container" onclick="setAudioPosition(event)">
+                                    <div class="progress-bar" id="progress-bar"></div>
+                                </div>`;
+                }
+                content += `<button onclick="closeInfo()">Close</button>`;
+                infoDiv.innerHTML = content;
+                infoDiv.style.display = 'block';
+            } else {
+                if (!infoDiv.classList.contains('clicked')) {
+                    infoDiv.style.display = 'none';
+                }
+            }
+        });
+
+        map.on('click', function(evt) {
+            const feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+                return feature;
+            });
+            if (feature) {
+                infoDiv.classList.add('clicked');
+                let content = '';
+                if (feature.get('image')) {
+                    content += `<img src="${feature.get('image')}" alt="${feature.get('name')}">`;
+                }
+                content += `<p>${feature.get('info')}</p>`;
+                if (feature.get('audio')) {
+                    content += `<div class="audio-icon" onclick="playAudio('${feature.get('audio')}')">🔊</div>`;
+                    content += `<div class="progress-container" onclick="setAudioPosition(event)">
+                                    <div class="progress-bar" id="progress-bar"></div>
+                                </div>`;
+                }
+                content += `<button onclick="closeInfo()">Close</button>`;
+                infoDiv.innerHTML = content;
+                infoDiv.style.display = 'block';
+            } else {
+                infoDiv.classList.remove('clicked');
+            }
+        });
+
+        function closeInfo() {
+            infoDiv.style.display = 'none';
+            infoDiv.classList.remove('clicked');
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+        }
+
+        function playAudio(audioSrc) {
+            if (currentAudio) {
+                currentAudio.pause();
+            }
+            currentAudio = new Audio(audioSrc);
+            currentAudio.play();
+            currentAudio.ontimeupdate = updateProgressBar;
+        }
+
+        function updateProgressBar() {
+            const progressBar = document.getElementById('progress-bar');
+            if (currentAudio && progressBar) {
+                const percentage = (currentAudio.currentTime / currentAudio.duration) * 100;
+                progressBar.style.width = `${percentage}%`;
+            }
+        }
+
+        function setAudioPosition(event) {
+            if (currentAudio) {
+                const progressContainer = event.currentTarget;
+                const rect = progressContainer.getBoundingClientRect();
+                const offsetX = event.clientX - rect.left;
+                const percentage = offsetX / rect.width;
+                currentAudio.currentTime = percentage * currentAudio.duration;
+            }
+        }
+    </script>
+</body>
+</html>
+
