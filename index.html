@@ -111,7 +111,7 @@
     <div id="controls">
         <input type="text" id="address" placeholder="Enter address or lat,lng">
         <button onclick="goToLocation()">Go</button>
-        <button onclick="showCurrentLocationTest()">Current Location</button>
+        <button onclick="showCurrentLocation()">Current Location</button>
     </div>
     <div id="results"></div>
     <div id="info"></div>
@@ -140,7 +140,7 @@
                     view.setZoom(18);
                 }, error => {
                     console.error('Error getting current location:', error);
-                    alert('Error getting current location' + error);
+                    alert('Error getting current location - ' + error.code + '-' + error.message);
                 });
             } else {
                 alert('Geolocation is not supported by this browser.');
