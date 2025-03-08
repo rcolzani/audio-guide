@@ -1,22 +1,25 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Map Test</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol/ol.css">
     <style>
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
             height: 100%;
             width: 100%;
         }
+
         #map {
             height: 100%;
             width: 100%;
         }
+
         #controls {
             position: absolute;
             top: 10px;
@@ -27,42 +30,53 @@
             border-radius: 5px;
             z-index: 1000;
         }
+
         #info {
             display: none;
-            position: fixed; /* Changed from absolute to fixed */
-            bottom: 10px; /* Position at the bottom */
-            left: 50%; /* Center horizontally */
-            transform: translateX(-50%); /* Center horizontally */
+            position: fixed;
+            /* Changed from absolute to fixed */
+            bottom: 10px;
+            /* Position at the bottom */
+            left: 50%;
+            /* Center horizontally */
+            transform: translateX(-50%);
+            /* Center horizontally */
             background: rgba(255, 255, 255, 0.8);
             padding: 10px;
             border-radius: 5px;
             z-index: 1001;
         }
+
         #info button {
             display: block;
             margin-top: 10px;
         }
+
         #info img {
             float: left;
             margin-right: 10px;
             max-width: 100px;
             max-height: 100px;
         }
+
         #info .audio-icon {
             cursor: pointer;
             margin-top: 10px;
         }
+
         #info .progress-container {
             width: 100%;
             background: #ddd;
             cursor: pointer;
             margin-top: 10px;
         }
+
         #info .progress-bar {
             width: 0;
             height: 10px;
             background: #4caf50;
         }
+
         #results {
             position: absolute;
             top: 50px;
@@ -75,25 +89,29 @@
             overflow-y: auto;
             width: 300px;
         }
+
         #results ul {
             list-style: none;
             padding: 0;
             margin: 0;
         }
+
         #results li {
             padding: 10px;
             cursor: pointer;
         }
+
         #results li:hover {
             background: #ddd;
         }
     </style>
 </head>
+
 <body>
     <div id="controls">
         <input type="text" id="address" placeholder="Enter address or lat,lng">
         <button onclick="goToLocation()">Go</button>
-        <button onclick="showCurrentLocation()">Current Location</button>
+        <button onclick="showCurrentLocationTest()">Current Location</button>
     </div>
     <div id="results"></div>
     <div id="info"></div>
@@ -124,6 +142,31 @@
                     console.error('Error getting current location:', error);
                     alert('Error getting current location' + error);
                 });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+
+        function showCurrentLocationTest() {
+            if (navigator.geolocation) {
+                const watchId = navigator.geolocation.watchPosition(
+                    position => {
+                        const { latitude, longitude } = position.coords;
+                        const view = map.getView();
+                        view.setCenter(ol.proj.fromLonLat([longitude, latitude]));
+                        view.setZoom(18);
+                        navigator.geolocation.clearWatch(watchId); // Para de monitorar após obter a localização
+                    },
+                    error => {
+                        console.error('Error getting current location:', error);
+                        alert('Error getting current location');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
             } else {
                 alert('Geolocation is not supported by this browser.');
             }
@@ -202,13 +245,13 @@
 
         const iconStyle = new ol.style.Style({
             image: new ol.style.Icon({
-                    color: [255, 77, 77],
-                    fill: new ol.style.Fill({
-                        color: [255, 77, 77]
-                    }),
-                    scale: 0.2,
-                    src: 'https://www.svgrepo.com/show/505281/audio.svg'
-                })
+                color: [255, 77, 77],
+                fill: new ol.style.Fill({
+                    color: [255, 77, 77]
+                }),
+                scale: 0.2,
+                src: 'https://www.svgrepo.com/show/505281/audio.svg'
+            })
         });
 
         const features = locations.map(location => {
@@ -236,8 +279,8 @@
         const infoDiv = document.getElementById('info');
         let currentAudio = null;
 
-        map.on('pointermove', function(evt) {
-            const feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+        map.on('pointermove', function (evt) {
+            const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
                 return feature;
             });
             if (feature) {
@@ -262,8 +305,8 @@
             }
         });
 
-        map.on('click', function(evt) {
-            const feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+        map.on('click', function (evt) {
+            const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
                 return feature;
             });
             if (feature) {
@@ -324,5 +367,5 @@
         }
     </script>
 </body>
-</html>
 
+</html>
