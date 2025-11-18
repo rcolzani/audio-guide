@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Turístico</title>
+    <title>Mapa Audioguia</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol/ol.css">
     <style>
         body, html { margin:0; padding:0; height:100%; width:100%; font-family: Arial, sans-serif; }
@@ -53,95 +53,50 @@
             border-radius: 8px;
             flex-shrink: 0;
         }
-        #info h3 {
-            margin: 0 0 8px 0;
-            font-size: 1.4em;
-            color: #222;
-        }
-        #info p {
-            margin: 0 0 12px 0;
-            line-height: 1.5;
-            color: #444;
-        }
-        #info .audio-icon {
-            font-size: 2.2em;
-            cursor: pointer;
-            user-select: none;
-        }
+        #info h3 { margin: 0 0 8px 0; font-size: 1.4em; color: #222; }
+        #info p { margin: 0 0 12px 0; line-height: 1.5; color: #444; }
+        #info .audio-icon { font-size: 2.5em; cursor: pointer; user-select: none; }
         #info .progress-container {
-            width: 100%;
-            height: 8px;
-            background: #ddd;
-            border-radius: 4px;
-            margin-top: 8px;
-            cursor: pointer;
-            overflow: hidden;
+            width: 100%; height: 8px; background: #ddd; border-radius: 4px;
+            margin-top: 8px; cursor: pointer; overflow: hidden;
         }
-        #info .progress-bar {
-            height: 100%;
-            width: 0;
-            background: #4caf50;
-            transition: width 0.1s;
-        }
+        #info .progress-bar { height: 100%; width: 0; background: #4caf50; transition: width 0.1s; }
         #info button {
-            margin-top: 15px;
-            padding: 8px 16px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
+            margin-top: 15px; padding: 10px; background: #e74c3c; color: white;
+            border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 1em;
         }
 
         #results {
-            position: absolute;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            max-height: 300px;
-            overflow-y: auto;
-            width: 90%;
-            max-width: 400px;
-            z-index: 1001;
+            position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+            background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            max-height: 300px; overflow-y: auto; width: 90%; max-width: 400px; z-index: 1001;
         }
-        #results li {
-            padding: 12px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
+        #results li { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee; }
         #results li:hover { background: #f0f0f0; }
-        #results li:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
 
     <div id="controls">
-        <input type="text" id="address" placeholder="Pesquisar local ou coordenadas (lat,lng)">
+        <input type="text" id="address" placeholder="Pesquisar local ou coordenadas">
         <button onclick="goToLocation()">Ir</button>
         <button onclick="showCurrentLocation()">Minha Localização</button>
     </div>
 
     <div id="results"></div>
 
-    <!-- Estrutura fixa da info – só o conteúdo muda via JS -->
     <div id="info">
         <div class="info-content">
             <img id="info-image" src="" alt="" style="display:none;">
             <div style="flex:1;">
                 <h3 id="info-title"></h3>
                 <p id="info-description"></p>
-
                 <div id="info-audio" style="display:none;">
                     <div class="audio-icon" id="play-button">Play Audio</div>
                     <div class="progress-container" id="progress-container">
                         <div class="progress-bar" id="progress-bar"></div>
                     </div>
                 </div>
-
                 <button onclick="closeInfo()">Fechar</button>
             </div>
         </div>
@@ -160,37 +115,66 @@
         const infoDiv = document.getElementById('info');
         let currentAudio = null;
 
-        // ====== DADOS DOS PONTOS TURÍSTICOS ======
+        // =============== DADOS DOS PONTOS TURÍSTICOS ===============
         const locations = [
             { name: 'Coliseu', coords: [12.4924, 41.8902], info: 'O maior anfiteatro já construído. Um ícone de Roma!', image: 'content/Colosseum.jpg', audio: 'content/Colosseum.m4a' },
             { name: 'Arco de Constantino', coords: [12.4906, 41.8897], info: 'Arco triunfal construído em 315 d.C.', image: null, audio: null },
             { name: 'Rua Padre Manuel Guimarães', coords: [-8.438892301042538, 41.55693808034299], info: 'Rua tranquila em Matosinhos, Portugal.', image: 'content/Colosseum.jpg', audio: 'content/Colosseum.m4a' },
+            // Adiciona mais pontos aqui...
         ];
 
-        // ====== CRIA MARCADORES ======
-        const iconStyle = new ol.style.Style({
-            image: new ol.style.Icon({
-                src: 'https://www.svgrepo.com/show/505281/audio.svg',
-                scale: 0.03,
-                color: '#e74c3c'
-            })
-        });
+        // =============== ÍCONE DE ALTIFALANTE COM ONDAS ===============
+   const speakerIcon = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <circle cx="24" cy="24" r="22" fill="white" stroke="%23e74c3c" stroke-width="4"/>
+  <path d="M24 14 L18 20 H12 V28 H18 L24 34 Z" fill="%23e74c3c"/>
+  <path d="M32 18 A8 8 0 0 1 32 30" stroke="%23e74c3c" stroke-width="4" fill="none"/>
+  <path d="M36 14 A14 14 0 0 1 36 34" stroke="%23e74c3c" stroke-width="3" fill="none" opacity="0.7"/>
+</svg>`);
 
+        // =============== FUNÇÃO QUE CRIA O ESTILO ===============
+        function createMarkerStyle(scale = 0.2) {
+            return new ol.style.Style({
+                image: new ol.style.Icon({
+                    src: speakerIcon,
+                    scale: Math.max(scale, 0.1),
+                    anchor: [0.5, 1],   // aponta para o ponto exato no mapa
+                    opacity: 1
+                })
+            });
+        }
+
+        // =============== CRIA FEATURES COM ESTILO INICIAL ===============
         const features = locations.map(loc => {
-            const f = new ol.Feature({
+            const feature = new ol.Feature({
                 geometry: new ol.geom.Point(ol.proj.fromLonLat(loc.coords)),
                 name: loc.name,
                 info: loc.info,
                 image: loc.image,
                 audio: loc.audio
             });
-            f.setStyle(iconStyle);
-            return f;
+            feature.setStyle(createMarkerStyle(0.2)); // estilo inicial obrigatório
+            return feature;
         });
 
-        map.addLayer(new ol.layer.Vector({ source: new ol.source.Vector({ features }) }));
+        // =============== ATUALIZA TAMANHO DOS MARCADORES COM O ZOOM ===============
+        function updateMarkerSize() {
+            const zoom = map.getView().getZoom() || 2;
+            const scale = Math.max(0.05, 0.06 * Math.pow(1.45, zoom - 8)); // nunca desaparece
+            const style = createMarkerStyle(scale);
+            features.forEach(f => f.setStyle(style));
+        }
 
-        // ====== FUNÇÃO CENTRAL PARA MOSTRAR INFO ======
+        // Atualiza ao iniciar e sempre que o zoom mudar
+        updateMarkerSize();
+        map.getView().on('change:resolution', updateMarkerSize);
+
+        // =============== ADICIONA A CAMADA DE MARCADORES ===============
+        map.addLayer(new ol.layer.Vector({
+            source: new ol.source.Vector({ features })
+        }));
+
+        // =============== POPUP DE INFORMAÇÃO ===============
         function showInfo(feature) {
             document.getElementById('info-title').textContent = feature.get('name') || 'Sem nome';
             document.getElementById('info-description').textContent = feature.get('info') || 'Sem descrição';
@@ -199,31 +183,27 @@
             if (feature.get('image')) {
                 img.src = feature.get('image');
                 img.style.display = 'block';
-            } else {
-                img.style.display = 'none';
-            }
+            } else img.style.display = 'none';
 
             const audioSection = document.getElementById('info-audio');
             const playBtn = document.getElementById('play-button');
             if (feature.get('audio')) {
                 audioSection.style.display = 'block';
                 playBtn.onclick = () => playAudio(feature.get('audio'));
-            } else {
-                audioSection.style.display = 'none';
-            }
+            } else audioSection.style.display = 'none';
 
             infoDiv.style.display = 'block';
         }
 
-        // Hover → preview
         map.on('pointermove', evt => {
             const feature = map.forEachFeatureAtPixel(evt.pixel, f => f);
-            if (feature && !infoDiv.classList.contains('clicked')) {
+            if (feature && !infoDiv.classList.contains('clicked')){
                 showInfo(feature);
+            } else if (!infoDiv.classList.contains('clicked')){
+                closeInfo();
             }
         });
 
-        // Click → fixa o popup
         map.on('click', evt => {
             const feature = map.forEachFeatureAtPixel(evt.pixel, f => f);
             if (feature) {
@@ -238,11 +218,7 @@
         function closeInfo() {
             infoDiv.style.display = 'none';
             infoDiv.classList.remove('clicked');
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
-                currentAudio = null;
-            }
+            if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null; }
             document.getElementById('progress-bar').style.width = '0%';
         }
 
@@ -252,29 +228,28 @@
             currentAudio.play();
             currentAudio.ontimeupdate = () => {
                 const pb = document.getElementById('progress-bar');
-                if (currentAudio.duration) {
-                    pb.style.width = (currentAudio.currentTime / currentAudio.duration * 100) + '%';
-                }
+                if (currentAudio.duration) pb.style.width = (currentAudio.currentTime / currentAudio.duration * 100) + '%';
             };
         }
 
-        document.getElementById('progress-container').onclick = function(e) {
+        document.getElementById('progress-container').onclick = e => {
             if (!currentAudio) return;
-            const rect = this.getBoundingClientRect();
+            const rect = e.currentTarget.getBoundingClientRect();
             const percent = (e.clientX - rect.left) / rect.width;
             currentAudio.currentTime = percent * currentAudio.duration;
         };
 
-        // ====== LOCALIZAÇÃO ATUAL ======
+        // =============== LOCALIZAÇÃO E PESQUISA ===============
         function showCurrentLocation() {
             if (!navigator.geolocation) return alert('Geolocalização não suportada');
             navigator.geolocation.getCurrentPosition(pos => {
-                const { latitude, longitude } = pos.coords;
-                map.getView().animate({ center: ol.proj.fromLonLat([longitude, latitude]), zoom: 18 });
+                map.getView().animate({
+                    center: ol.proj.fromLonLat([pos.coords.longitude, pos.coords.latitude]),
+                    zoom: 18
+                });
             }, () => alert('Não foi possível obter a localização'));
         }
 
-        // ====== PESQUISA ======
         function goToLocation() {
             const input = document.getElementById('address').value.trim();
             const resultsDiv = document.getElementById('results');
@@ -289,11 +264,11 @@
             }
 
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&limit=10`, {
-                headers: { 'User-Agent': 'MapaTuristico/1.0 (seuemail@gmail.com)' }
+                headers: { 'User-Agent': 'MapaAudioguia/1.0 (teuemail@gmail.com)' }
             })
             .then(r => r.json())
             .then(data => {
-                if (data.length === 0) return alert('Local não encontrado');
+                if (!data.length) return alert('Local não encontrado');
                 if (data.length === 1) {
                     const { lat, lon } = data[0];
                     map.getView().animate({ center: ol.proj.fromLonLat([+lon, +lat]), zoom: 16 });
@@ -313,8 +288,9 @@
             });
         }
 
-        // Enter na caixa de pesquisa
-        document.getElementById('address').addEventListener('keypress', e => { if (e.key === 'Enter') goToLocation(); });
+        document.getElementById('address').addEventListener('keypress', e => {
+            if (e.key === 'Enter') goToLocation();
+        });
     </script>
 </body>
 </html>
